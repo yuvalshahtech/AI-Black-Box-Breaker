@@ -56,7 +56,10 @@
             z-index: 10;
         }
 
-        header h1 {
+        .app-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
             font-size: 2.2rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
@@ -571,7 +574,9 @@
 <body>
     <!-- Header -->
     <header>
-        <h1>AI Black Box Breaker</h1>
+        <h1 class="app-title">
+            AI Black Box Breaker
+        </h1>
         <p>Interactive Algorithm Debugger for E-Commerce AI Systems</p>
     </header>
 
@@ -709,7 +714,6 @@
             'Shoes': {
                 'Socks': 42,
                 'Insoles': 18,
-                'Sports Watch': 15,
                 'Shoe Polish': 12,
                 'Running Belt': 8
             },
@@ -719,13 +723,6 @@
                 'Case': 25,
                 'Laptop': 22,
                 'Stand': 19
-            },
-            'Watch': {
-                'Watch Band': 58,
-                'Watch Face Protector': 44,
-                'Charger': 16,
-                'Sports Shoes': 15,
-                'Phone': 12
             }
         };
 
@@ -734,8 +731,7 @@
             'Laptop': 165,
             'Phone': 274,
             'Shoes': 95,
-            'Headphones': 131,
-            'Watch': 145
+            'Headphones': 131
         };
 
         // Product icons for visual representation
@@ -743,8 +739,7 @@
             'Laptop': 'fas fa-laptop',
             'Phone': 'fas fa-mobile-alt',
             'Shoes': 'fas fa-shoe-prints',
-            'Headphones': 'fas fa-headphones',
-            'Watch': 'fas fa-watch'
+            'Headphones': 'fas fa-headphones'
         };
 
         // ============================================================
@@ -1777,7 +1772,7 @@
          */
         function initializeProducts() {
             const productList = document.getElementById('productList');
-            const products = ['Laptop', 'Phone', 'Shoes', 'Headphones', 'Watch'];
+            const products = ['Laptop', 'Phone', 'Shoes', 'Headphones'];
 
             products.forEach(product => {
                 const card = document.createElement('div');
