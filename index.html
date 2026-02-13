@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Black Box Breaker – Interactive Algorithm Debugger</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #ffffff;
+            --secondary-bg: #f8f9fa;
+            --tertiary-bg: #f0f2f5;
+            --border-color: #e1e4e8;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555a5e;
+            --text-tertiary: #808a8f;
+            --accent: #0366d6;
+            --accent-hover: #0256c7;
+            --accent-light: #e6f0ff;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+            --radius-md: 8px;
+            --radius-sm: 4px;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                         sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--primary-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            background-color: var(--primary-bg);
+            border-bottom: 2px solid var(--border-color);
+            padding: 0 2rem;
+            position: relative;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1.25rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--accent);
+        }
+
+        .tab-button i {
+            font-size: 1.2rem;
+        }
+
+        /* Animated tab indicator */
+        .tab-indicator {
+            position: absolute;
+            bottom: -2px;
+            height: 3px;
+            background-color: var(--accent);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            height: calc(100vh - 200px);
+            overflow: hidden;
+        }
+
+        .tab-container {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .tab-container.active {
+            display: flex;
+        }
+
+        /* Three Column Grid Layout */
+        .three-column {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1.2fr;
+            gap: 2rem;
+            padding: 2rem;
+            height: 100%;
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow-y: auto;
+        }
+
+        .column::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .column::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .column::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .column::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .column-header {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .column-header i {
+            color: var(--accent);
+            font-size: 1.4rem;
+        }
+
+        /* ===== LEFT PANEL STYLES ===== */
+        .product-card {
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            background-color: var(--secondary-bg);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(3, 102, 214, 0.05);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-card:hover {
+            border-color: var(--accent);
+            background-color: var(--accent-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .product-card.selected {
+            border-color: var(--accent);
+            background-color: var(--accent-light);
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+        }
+
+        .product-card i {
+            font-size: 1.8rem;
+            color: var(--accent);
+            z-index: 1;
+        }
+
+        .product-card span {
+            z-index: 1;
+        }
+
+        /* Control Buttons */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.85rem 1.5rem;
+            border: 2px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: var(--tertiary-bg);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+            box-shadow: 0 4px 16px rgba(3, 102, 214, 0.3);
+        }
+
+        .btn i {
+            font-size: 1rem;
+        }
+
+        /* Progress Indicator */
+        .progress-indicator {
+            background-color: var(--secondary-bg);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        /* ===== CENTER PANEL – STEP CARDS ===== */
+        .step-card {
+            background-color: var(--secondary-bg);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.4s ease;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+
+        .step-card.active {
+            border-color: var(--accent);
+            border-left-color: var(--accent);
+            background-color: var(--accent-light);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(3, 102, 214, 0.3);
+        }
+
+        .step-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .step-content {
+            margin-top: 1rem;
+        }
+
+        .step-content-item {
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background-color: var(--primary-bg);
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .step-code {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #d63384;
+            margin-top: 0.75rem;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--primary-bg);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
+            padding: 0.85rem;
+            text-align: left;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .data-table td {
+            padding: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ===== RIGHT PANEL – DATA INSPECTOR ===== */
+        .inspector-section {
+            background: linear-gradient(135deg, var(--secondary-bg), var(--tertiary-bg));
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .inspector-section:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
+        }
+
+        .inspector-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        .inspector-title i {
+            color: var(--accent);
+        }
+
+        .inspector-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0.75rem;
+            background-color: var(--primary-bg);
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .inspector-array {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            padding: 1rem;
+            background-color: var(--primary-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Text Area */
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            color: var(--text-primary);
+            background-color: var(--primary-bg);
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        /* Sentiment Badges */
+        .sentiment-badge {
+            display: inline-block;
+            padding: 0.65rem 1rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sentiment-positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .sentiment-negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .sentiment-neutral {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .three-column {
+                grid-template-columns: 1fr 1.5fr 1.5fr;
+                gap: 1.5rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .three-column {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .column {
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>AI Black Box Breaker</h1>
+        <p>Interactive Algorithm Debugger for E-Commerce AI Systems</p>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-button active" data-tab="recommendation">
+            <i class="fas fa-robot"></i>
+            Item-to-Item Collaborative Filtering
+        </button>
+        <button class="tab-button" data-tab="review">
+            <i class="fas fa-comments"></i>
+            NLP Pipeline Intelligence
+        </button>
+        <div class="tab-indicator"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- TAB 1: Recommendation Engine Debugger -->
+        <div id="recommendation" class="tab-container active">
+            <div class="three-column">
+                <!-- LEFT: Controls & Product Selection -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-cube"></i>
+                        Product Selection
+                    </div>
+
+                    <div id="productList"></div>
+
+                    <div class="control-group">
+                        <div class="progress-indicator" id="recProgress">Step 0 of 6</div>
+                        <button class="btn" id="recNextBtn" onclick="recDebugger.nextStep()" disabled>
+                            <i class="fas fa-arrow-right"></i>
+                            Next Step
+                        </button>
+                        <button class="btn" id="recResetBtn" onclick="recDebugger.reset()">
+                            <i class="fas fa-redo"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CENTER: Algorithm Debugger Steps -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-bug"></i>
+                        Algorithm Execution Pipeline
+                    </div>
+                    <div id="recDebugSteps"></div>
+                </div>
+
+                <!-- RIGHT: Live Data Inspector -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-database"></i>
+                        Live Data Inspector
+                    </div>
+                    <div id="recInspector"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Review Intelligence Debugger -->
+        <div id="review" class="tab-container">
+            <div class="three-column">
+                <!-- LEFT: Review Input & Controls -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-pen-fancy"></i>
+                        Review Input
+                    </div>
+
+                    <textarea id="reviewInput" placeholder="Enter a product review to analyze..."></textarea>
+
+                    <div class="control-group">
+                        <div class="progress-indicator" id="nlpProgress">Ready</div>
+                        <button class="btn" id="nlpNextBtn" onclick="nlpDebugger.nextStep()" disabled>
+                            <i class="fas fa-arrow-right"></i>
+                            Next Step
+                        </button>
+                        <button class="btn" id="nlpResetBtn" onclick="nlpDebugger.reset()">
+                            <i class="fas fa-redo"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CENTER: NLP Pipeline Steps -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-brain"></i>
+                        NLP Pipeline Execution
+                    </div>
+                    <div id="nlpDebugSteps"></div>
+                </div>
+
+                <!-- RIGHT: Analysis Results -->
+                <div class="column">
+                    <div class="column-header">
+                        <i class="fas fa-chart-pie"></i>
+                        Analysis Results
+                    </div>
+                    <div id="nlpResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // COLLABORATIVE FILTERING DATA & UTILITIES
+        // ============================================================
+
+        /**
+         * Mock dataset for item-to-item collaborative filtering
+         * Structure: product name -> {co-purchased item: count}
+         * Co-purchase count represents frequency of items bought together
+         */
+        const coPurchaseData = {
+            'Laptop': {
+                'Mouse': 45,
+                'Keyboard': 37,
+                'USB Cable': 28,
+                'Monitor': 22,
+                'Phone Case': 5
+            },
+            'Phone': {
+                'Phone Case': 82,
+                'Charger': 73,
+                'Screen Protector': 56,
+                'Headphones': 34,
+                'Power Bank': 29
+            },
+            'Shoes': {
+                'Socks': 42,
+                'Insoles': 18,
+                'Sports Watch': 15,
+                'Shoe Polish': 12,
+                'Running Belt': 8
+            },
+            'Headphones': {
+                'Phone': 34,
+                'Audio Cable': 31,
+                'Case': 25,
+                'Laptop': 22,
+                'Stand': 19
+            },
+            'Watch': {
+                'Watch Band': 58,
+                'Watch Face Protector': 44,
+                'Charger': 16,
+                'Sports Shoes': 15,
+                'Phone': 12
+            }
+        };
+
+        // Total purchases per product (denominator in similarity formula)
+        const totalPurchasesPerProduct = {
+            'Laptop': 165,
+            'Phone': 274,
+            'Shoes': 95,
+            'Headphones': 131,
+            'Watch': 145
+        };
+
+        // Product icons for visual representation
+        const productIcons = {
+            'Laptop': 'fas fa-laptop',
+            'Phone': 'fas fa-mobile-alt',
+            'Shoes': 'fas fa-shoe-prints',
+            'Headphones': 'fas fa-headphones',
+            'Watch': 'fas fa-watch'
+        };
+
+        // ============================================================
+        // NLP & SENTIMENT ANALYSIS DATA
+        // ============================================================
+
+        // Stopword list for text preprocessing
+        const stopwords = new Set([
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+            'of', 'with', 'by', 'from', 'is', 'was', 'are', 'been', 'be', 'have',
+            'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+            'it', 'its', 'as', 'if', 'this', 'that', 'these', 'those', 'i', 'me',
+            'my', 'you', 'he', 'she', 'we', 'they', 'what', 'which', 'who', 'when'
+        ]);
+
+        // Sentiment vocabulary for scoring
+        const sentimentLexicon = {
+            positive: ['good', 'great', 'excellent', 'amazing', 'fantastic', 'wonderful',
+                      'awesome', 'fast', 'quick', 'reliable', 'efficient', 'beautiful',
+                      'love', 'perfect', 'best', 'satisfied', 'happy', 'impressed'],
+            negative: ['bad', 'terrible', 'awful', 'horrible', 'poor', 'slow',
+                      'broken', 'useless', 'waste', 'disappointed', 'worse', 'worst',
+                      'late', 'damaged', 'cheap', 'fragile', 'unhappy', 'regret']
+        };
+
+        // Aspect mapping for aspect extraction
+        const aspectKeywords = {
+            'Quality': ['quality', 'material', 'durability', 'build', 'solid', 'sturdy'],
+            'Delivery': ['delivery', 'shipping', 'arrived', 'late', 'fast', 'slow', 'package'],
+            'Price': ['price', 'expensive', 'cheap', 'cost', 'value', 'worth', 'affordable'],
+            'Packaging': ['packaging', 'box', 'wrap', 'presentation', 'unbox']
+        };
+
+        // ============================================================
+        // RECOMMENDATION ENGINE DEBUGGER
+        // ============================================================
+
+        /**
+         * Recommendation Engine Debugger Class
+         * Handles step-by-step collaborative filtering algorithm execution
+         */
+        class RecommendationDebugger {
+            constructor() {
+                this.selectedProduct = null;
+                this.currentStep = 0;
+                this.maxSteps = 6;
+                this.isActive = false;
+                this.debugData = {};
+            }
+
+            /**
+             * Initialize debugger with selected product and auto-execute Step 1
+             */
+            initializeDebugger(product) {
+                this.selectedProduct = product;
+                this.currentStep = 1; // Start at Step 1
+                this.isActive = true;
+                this.debugData = {
+                    product: this.selectedProduct,
+                    coItems: { ...coPurchaseData[this.selectedProduct] },
+                    totalPurchases: totalPurchasesPerProduct[this.selectedProduct],
+                    similarities: {},
+                    ranked: {}
+                };
+
+                document.getElementById('recNextBtn').disabled = false;
+                this.updateProgress();
+                this.showStep(0); // Execute Step 1 (index 0)
+                this.renderInspector();
+            }
+
+            /**
+             * Move to next step in algorithm
+             */
+            nextStep() {
+                if (this.currentStep < this.maxSteps) {
+                    this.currentStep++;
+                    this.showStep(this.currentStep - 1);
+                    this.updateProgress();
+                }
+
+                if (this.currentStep >= this.maxSteps) {
+                    document.getElementById('recNextBtn').disabled = true;
+                }
+            }
+
+            /**
+             * Reset debugger to initial state
+             */
+            reset() {
+                this.selectedProduct = null;
+                this.currentStep = 0;
+                this.isActive = false;
+                this.debugData = {};
+                document.getElementById('recNextBtn').disabled = true;
+                document.getElementById('recDebugSteps').innerHTML = '';
+                document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+                this.updateProgress();
+                this.renderInspector();
+            }
+
+            /**
+             * Render and display current algorithm step
+             */
+            showStep(stepIndex) {
+                const stepsContainer = document.getElementById('recDebugSteps');
+                let stepHTML = '';
+
+                switch (stepIndex) {
+                    case 0: stepHTML = this.renderStep1(); break;
+                    case 1: stepHTML = this.renderStep2(); break;
+                    case 2: stepHTML = this.renderStep3(); break;
+                    case 3: stepHTML = this.renderStep4(); break;
+                    case 4: stepHTML = this.renderStep5(); break;
+                    case 5: stepHTML = this.renderStep6(); break;
+                }
+
+                stepsContainer.innerHTML = stepHTML;
+                this.renderInspector();
+            }
+
+            /**
+             * STEP 1: Capture User Interaction
+             */
+            renderStep1() {
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Capture User Interaction</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Event Type:</strong> Product View
+                            </div>
+                            <div class="step-content-item">
+                                <strong>Selected Product:</strong> ${this.selectedProduct}
+                            </div>
+                            <div class="step-content-item">
+                                <strong>Action:</strong> Trigger recommendation pipeline
+                            </div>
+                            <div class="step-code">
+                                userInteraction = {
+                                  event: "productViewed",
+                                  product: "${this.selectedProduct}",
+                                  timestamp: Date.now()
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 2: Retrieve Co-Purchase Dataset
+             */
+            renderStep2() {
+                const coItems = this.debugData.coItems;
+                let tableHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Retrieve Co-Purchase Dataset</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                Query: Products frequently bought with <strong>${this.selectedProduct}</strong>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Co-Purchases</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                for (const [item, count] of Object.entries(coItems)) {
+                    tableHTML += `<tr><td>${item}</td><td>${count}</td></tr>`;
+                }
+
+                tableHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                return tableHTML;
+            }
+
+            /**
+             * STEP 3: Construct Similarity Formula & Matrix
+             * Formula: similarity = coPurchaseCount / totalPurchases
+             */
+            renderStep3() {
+                const coItems = this.debugData.coItems;
+                const total = this.debugData.totalPurchases;
+                let matrixHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Construct Similarity Formula</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Similarity Calculation Formula:</strong>
+                            </div>
+                            <div class="step-code">
+                                similarity(itemA, itemB) = coCount(itemA, itemB) / totalPurchases(itemA)
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                <strong>Total Purchases of ${this.selectedProduct}:</strong> ${total}
+                            </div>
+                `;
+
+                // Calculate similarities
+                this.debugData.similarities = {};
+                for (const [item, count] of Object.entries(coItems)) {
+                    const similarity = (count / total).toFixed(4);
+                    this.debugData.similarities[item] = similarity;
+                    matrixHTML += `
+                        <div class="step-code">
+                            ${item}: ${count} / ${total} = ${similarity}
+                        </div>
+                    `;
+                }
+
+                matrixHTML += `
+                        </div>
+                    </div>
+                `;
+
+                return matrixHTML;
+            }
+
+            /**
+             * STEP 4: Compute Similarity Scores
+             */
+            renderStep4() {
+                const similarities = this.debugData.similarities;
+                let scoreHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">4</div>
+                            <div class="step-title">Compute Similarity Scores</div>
+                        </div>
+                        <div class="step-content">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Similarity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                for (const [item, score] of Object.entries(similarities)) {
+                    scoreHTML += `<tr><td>${item}</td><td><strong>${score}</strong></td></tr>`;
+                }
+
+                scoreHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                return scoreHTML;
+            }
+
+            /**
+             * STEP 5: Rank Items by Similarity Score (Descending)
+             */
+            renderStep5() {
+                const similarities = this.debugData.similarities;
+
+                // Sort by similarity (descending)
+                const sorted = Object.entries(similarities)
+                    .sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]))
+                    .reduce((obj, [key, val]) => { obj[key] = val; return obj; }, {});
+
+                this.debugData.ranked = sorted;
+
+                let rankHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">5</div>
+                            <div class="step-title">Rank Items by Score</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                Items ranked by similarity (descending order)
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Product</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                let rank = 1;
+                for (const [item, score] of Object.entries(sorted)) {
+                    rankHTML += `<tr><td>#${rank}</td><td>${item}</td><td><strong>${score}</strong></td></tr>`;
+                    rank++;
+                }
+
+                rankHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                return rankHTML;
+            }
+
+            /**
+             * STEP 6: Final Recommendation Output
+             * Display top 2 recommended items
+             */
+            renderStep6() {
+                const ranked = this.debugData.ranked;
+                const topRecommendations = Object.entries(ranked).slice(0, 2);
+
+                let recHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">6</div>
+                            <div class="step-title">Final Recommendation Output</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                Top 2 recommended items for the user:
+                            </div>
+                `;
+
+                topRecommendations.forEach((rec, idx) => {
+                    recHTML += `
+                        <div class="step-code">
+                            [${idx + 1}] RECOMMEND: ${rec[0]}
+                            (similarity: ${rec[1]})
+                        </div>
+                    `;
+                });
+
+                recHTML += `
+                        </div>
+                    </div>
+                `;
+
+                return recHTML;
+            }
+
+            /**
+             * Render live data inspector with current algorithm state
+             */
+            renderInspector() {
+                let inspectorHTML = '';
+
+                if (this.isActive) {
+                    inspectorHTML = `
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-cube"></i>
+                                Selected Product
+                            </div>
+                            <div class="inspector-value">${this.debugData.product}</div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-tally"></i>
+                                Total Purchases
+                            </div>
+                            <div class="inspector-value">${this.debugData.totalPurchases} users</div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-layer-group"></i>
+                                Co-Purchase Data
+                            </div>
+                            <div class="inspector-array">${JSON.stringify(this.debugData.coItems, null, 2)}</div>
+                        </div>
+                    `;
+
+                    if (Object.keys(this.debugData.similarities).length > 0) {
+                        inspectorHTML += `
+                            <div class="inspector-section">
+                                <div class="inspector-title">
+                                    <i class="fas fa-calculator"></i>
+                                    Similarity Scores
+                                </div>
+                                <div class="inspector-array">${JSON.stringify(this.debugData.similarities, null, 2)}</div>
+                            </div>
+                        `;
+                    }
+
+                    if (Object.keys(this.debugData.ranked).length > 0) {
+                        inspectorHTML += `
+                            <div class="inspector-section">
+                                <div class="inspector-title">
+                                    <i class="fas fa-sort"></i>
+                                    Ranked Items
+                                </div>
+                                <div class="inspector-array">${JSON.stringify(this.debugData.ranked, null, 2)}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    inspectorHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Select a product and start debugging</p>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('recInspector').innerHTML = inspectorHTML;
+            }
+
+            /**
+             * Update progress indicator
+             */
+            updateProgress() {
+                document.getElementById('recProgress').textContent = 
+                    `Step ${this.currentStep} of ${this.maxSteps}`;
+            }
+        }
+
+        // ============================================================
+        // NLP SENTIMENT ANALYSIS DEBUGGER
+        // ============================================================
+
+        /**
+         * NLP Debugger Class
+         * Handles step-by-step NLP pipeline execution with sentiment analysis
+         */
+        class NLPDebugger {
+            constructor() {
+                this.reviewText = null;
+                this.currentStep = 0;
+                this.maxSteps = 8;
+                this.isActive = false;
+                this.debugData = {};
+                this.debounceTimer = null;
+            }
+
+            /**
+             * Initialize debugger with review text and auto-execute Step 1
+             */
+            initializeDebugger(reviewText) {
+                if (!reviewText || reviewText.length === 0) return;
+                
+                // Prevent re-initialization with same text
+                if (this.isActive && this.reviewText === reviewText) return;
+
+                this.reviewText = reviewText;
+                this.currentStep = 1; // Start at Step 1
+                this.isActive = true;
+                this.debugData = { originalText: this.reviewText };
+
+                document.getElementById('nlpNextBtn').disabled = false;
+                this.updateProgress();
+                this.showStep(0); // Execute Step 1 (index 0)
+                this.renderResults();
+            }
+
+            /**
+             * Move to next step
+             */
+            nextStep() {
+                if (this.currentStep < this.maxSteps) {
+                    this.currentStep++;
+                    this.showStep(this.currentStep - 1);
+                    this.updateProgress();
+                }
+
+                if (this.currentStep >= this.maxSteps) {
+                    document.getElementById('nlpNextBtn').disabled = true;
+                }
+            }
+
+            /**
+             * Reset analysis
+             */
+            reset() {
+                this.reviewText = null;
+                this.currentStep = 0;
+                this.isActive = false;
+                this.debugData = {};
+                document.getElementById('nlpNextBtn').disabled = true;
+                document.getElementById('nlpDebugSteps').innerHTML = '';
+                document.getElementById('reviewInput').value = '';
+                this.updateProgress();
+                document.getElementById('nlpResults').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <p>Enter a review to start analysis</p>
+                    </div>
+                `;
+            }
+
+            /**
+             * Render and display current NLP step
+             */
+            showStep(stepIndex) {
+                const stepsContainer = document.getElementById('nlpDebugSteps');
+                let stepHTML = '';
+
+                switch (stepIndex) {
+                    case 0: stepHTML = this.renderStep1(); break;
+                    case 1: stepHTML = this.renderStep2(); break;
+                    case 2: stepHTML = this.renderStep3(); break;
+                    case 3: stepHTML = this.renderStep4(); break;
+                    case 4: stepHTML = this.renderStep5(); break;
+                    case 5: stepHTML = this.renderStep6(); break;
+                    case 6: stepHTML = this.renderStep7(); break;
+                    case 7: stepHTML = this.renderStep8(); break;
+                }
+
+                stepsContainer.innerHTML = stepHTML;
+                this.renderResults();
+            }
+
+            /**
+             * STEP 1: Raw Input Text
+             */
+            renderStep1() {
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Raw Input Text</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                "${this.reviewText}"
+                            </div>
+                            <div class="step-code">
+                                length: ${this.reviewText.length} characters
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 2: Lowercase Conversion
+             */
+            renderStep2() {
+                const lowercase = this.reviewText.toLowerCase();
+                this.debugData.lowercase = lowercase;
+
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Lowercase Conversion</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Method:</strong> text.toLowerCase()
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                "${lowercase}"
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 3: Remove Punctuation
+             */
+            renderStep3() {
+                const noPunct = this.debugData.lowercase.replace(/[^\w\s]/g, '');
+                this.debugData.noPunctuation = noPunct;
+
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Remove Punctuation</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Method:</strong> replace(/^[\\w\\s]/g, '')
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                "${noPunct}"
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 4: Remove Stopwords
+             */
+            renderStep4() {
+                const tokens = this.debugData.noPunctuation.split(/\s+/).filter(t => t.length > 0);
+                const filtered = tokens.filter(t => !stopwords.has(t));
+                const removed = tokens.filter(t => stopwords.has(t));
+                this.debugData.tokensAfterStopwords = filtered;
+
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">4</div>
+                            <div class="step-title">Remove Stopwords</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Stopwords Removed:</strong> ${removed.length}
+                            </div>
+                            <div class="step-code">
+                                [${removed.map(w => `"${w}"`).join(', ')}]
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                <strong>Remaining Tokens:</strong> ${filtered.length}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 5: Tokenization
+             */
+            renderStep5() {
+                const tokens = this.debugData.tokensAfterStopwords;
+                this.debugData.tokens = tokens;
+
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">5</div>
+                            <div class="step-title">Tokenization</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-code">
+                                tokens = [
+                                  ${tokens.map(t => `"${t}"`).join(',\n  ')}
+                                ]
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                <strong>Total Tokens:</strong> ${tokens.length}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * STEP 6: Sentiment Scoring
+             * Uses keyword-based sentiment analysis (+/- 1 per word)
+             */
+            renderStep6() {
+                const tokens = this.debugData.tokens;
+                let score = 0;
+                const positive = [];
+                const negative = [];
+
+                tokens.forEach(token => {
+                    if (sentimentLexicon.positive.includes(token)) {
+                        positive.push(token);
+                        score += 1;
+                    }
+                    if (sentimentLexicon.negative.includes(token)) {
+                        negative.push(token);
+                        score -= 1;
+                    }
+                });
+
+                this.debugData.sentimentScore = score;
+                this.debugData.positiveWords = positive;
+                this.debugData.negativeWords = negative;
+
+                let scoreHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">6</div>
+                            <div class="step-title">Sentiment Scoring</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Algorithm:</strong> Bag-of-Words Sentiment Analysis
+                            </div>
+                            <div class="step-code">
+                                score = 0
+                            </div>
+                `;
+
+                if (positive.length > 0) {
+                    scoreHTML += `
+                        <div class="step-content-item" style="margin-top: 1rem;">
+                            <strong>Positive Words Found:</strong> ${positive.length}
+                        </div>
+                    `;
+                    positive.forEach(word => {
+                        scoreHTML += `<div class="step-code">score += 1 (found: "${word}")</div>`;
+                    });
+                }
+
+                if (negative.length > 0) {
+                    scoreHTML += `
+                        <div class="step-content-item" style="margin-top: 1rem;">
+                            <strong>Negative Words Found:</strong> ${negative.length}
+                        </div>
+                    `;
+                    negative.forEach(word => {
+                        scoreHTML += `<div class="step-code">score -= 1 (found: "${word}")</div>`;
+                    });
+                }
+
+                scoreHTML += `
+                        <div class="step-code" style="margin-top: 1.5rem; font-weight: 700; color: #0366d6;">
+                            FINAL SCORE = ${score}
+                        </div>
+                        </div>
+                    </div>
+                `;
+
+                return scoreHTML;
+            }
+
+            /**
+             * STEP 7: Aspect Detection
+             * Map tokens to product aspects
+             */
+            renderStep7() {
+                const tokens = this.debugData.tokens;
+                const detectedAspects = {};
+
+                for (const aspect in aspectKeywords) {
+                    const keywords = aspectKeywords[aspect];
+                    const found = tokens.filter(t => keywords.includes(t));
+                    if (found.length > 0) {
+                        detectedAspects[aspect] = found;
+                    }
+                }
+
+                this.debugData.detectedAspects = detectedAspects;
+
+                let aspectHTML = `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">7</div>
+                            <div class="step-title">Aspect Detection</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Mapping tokens to product aspects</strong>
+                            </div>
+                `;
+
+                if (Object.keys(detectedAspects).length === 0) {
+                    aspectHTML += `
+                        <div class="step-content-item">
+                            No recognized aspects found in review.
+                        </div>
+                    `;
+                } else {
+                    for (const aspect in detectedAspects) {
+                        const keywords = detectedAspects[aspect];
+                        aspectHTML += `
+                            <div class="step-code">
+                                ${aspect}: [${keywords.map(k => `"${k}"`).join(', ')}]
+                            </div>
+                        `;
+                    }
+                }
+
+                aspectHTML += `
+                        </div>
+                    </div>
+                `;
+
+                return aspectHTML;
+            }
+
+            /**
+             * STEP 8: Insight Generation
+             * Create human-readable summary from analysis
+             */
+            renderStep8() {
+                const score = this.debugData.sentimentScore;
+                const aspects = this.debugData.detectedAspects;
+
+                let classification = 'Neutral';
+                if (score > 0) classification = 'Positive';
+                if (score < 0) classification = 'Negative';
+
+                this.debugData.classification = classification;
+
+                let insight = 'Unable to generate insight.';
+
+                if (Object.keys(aspects).length > 0) {
+                    const positiveAspects = [];
+                    const negativeAspects = [];
+
+                    for (const aspect in aspects) {
+                        const keywords = aspects[aspect];
+                        let aspectScore = 0;
+
+                        keywords.forEach(kw => {
+                            if (sentimentLexicon.positive.includes(kw)) aspectScore += 1;
+                            if (sentimentLexicon.negative.includes(kw)) aspectScore -= 1;
+                        });
+
+                        if (aspectScore > 0) positiveAspects.push(aspect);
+                        if (aspectScore < 0) negativeAspects.push(aspect);
+                    }
+
+                    if (positiveAspects.length > 0 || negativeAspects.length > 0) {
+                        insight = 'Customers ';
+                        if (positiveAspects.length > 0) {
+                            insight += `appreciate ${positiveAspects.join(' and ')}`;
+                        }
+                        if (negativeAspects.length > 0) {
+                            if (positiveAspects.length > 0) {
+                                insight += ' but are dissatisfied with ';
+                            } else {
+                                insight += 'are dissatisfied with ';
+                            }
+                            insight += negativeAspects.join(' and ');
+                        }
+                        insight += '.';
+                    } else {
+                        insight = `Overall sentiment is ${classification}.`;
+                    }
+                }
+
+                this.debugData.insight = insight;
+
+                return `
+                    <div class="step-card active">
+                        <div class="step-header">
+                            <div class="step-number">8</div>
+                            <div class="step-title">Insight Generation</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="step-content-item">
+                                <strong>Classification:</strong> ${classification}
+                            </div>
+                            <div class="step-content-item">
+                                <strong>Score:</strong> ${score}
+                            </div>
+                            <div class="step-content-item" style="margin-top: 1rem;">
+                                <strong>Generated Insight:</strong>
+                            </div>
+                            <div class="step-code">
+                                "${insight}"
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * Render structured analysis results
+             */
+            renderResults() {
+                let resultsHTML = '';
+
+                if (this.isActive && Object.keys(this.debugData).length > 1) {
+                    const classification = this.debugData.classification || 'Neutral';
+                    const score = this.debugData.sentimentScore !== undefined ? this.debugData.sentimentScore : 0;
+                    const aspects = this.debugData.detectedAspects || {};
+                    const insight = this.debugData.insight || '';
+
+                    const sentimentClass = classification === 'Positive' ? 'sentiment-positive' :
+                                          classification === 'Negative' ? 'sentiment-negative' :
+                                          'sentiment-neutral';
+
+                    resultsHTML = `
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-heart"></i>
+                                Classification
+                            </div>
+                            <div class="sentiment-badge ${sentimentClass}">
+                                ${classification}
+                            </div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-equals"></i>
+                                Score
+                            </div>
+                            <div class="inspector-value">${score}</div>
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-tags"></i>
+                                Aspects
+                            </div>
+                    `;
+
+                    if (Object.keys(aspects).length === 0) {
+                        resultsHTML += `<div style="color: #999; font-size: 0.9rem;">None detected</div>`;
+                    } else {
+                        for (const aspect in aspects) {
+                            resultsHTML += `
+                                <div class="inspector-value">
+                                    <strong>${aspect}</strong><br>
+                                    <span style="font-size: 0.85rem;">${aspects[aspect].join(', ')}</span>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    resultsHTML += `
+                        </div>
+
+                        <div class="inspector-section">
+                            <div class="inspector-title">
+                                <i class="fas fa-lightbulb"></i>
+                                Insight
+                            </div>
+                            <div class="inspector-value">
+                                "${insight}"
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <p>Results will appear here</p>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('nlpResults').innerHTML = resultsHTML;
+            }
+
+            /**
+             * Update progress indicator
+             */
+            updateProgress() {
+                if (this.isActive) {
+                    document.getElementById('nlpProgress').textContent = 
+                        `Step ${this.currentStep} of ${this.maxSteps}`;
+                } else {
+                    document.getElementById('nlpProgress').textContent = 'Ready';
+                }
+            }
+        }
+
+        // ============================================================
+        // INSTANTIATE DEBUGGERS
+        // ============================================================
+
+        const recDebugger = new RecommendationDebugger();
+        const nlpDebugger = new NLPDebugger();
+
+        // ============================================================
+        // TAB SWITCHING & NAVIGATION
+        // ============================================================
+
+        /**
+         * Initialize tab navigation with animated indicator
+         */
+        function initializeTabs() {
+            const buttons = document.querySelectorAll('.tab-button');
+            const indicator = document.querySelector('.tab-indicator');
+
+            function updateIndicator(activeButton) {
+                const { offsetLeft, offsetWidth } = activeButton;
+                indicator.style.left = offsetLeft + 'px';
+                indicator.style.width = offsetWidth + 'px';
+            }
+
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.getAttribute('data-tab');
+
+                    // Update button state
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    // Update indicator
+                    updateIndicator(button);
+
+                    // Update content
+                    document.querySelectorAll('.tab-container').forEach(container => {
+                        container.classList.remove('active');
+                    });
+                    document.getElementById(tabName).classList.add('active');
+
+                    // Auto-initialize NLP debugger if review tab activated with text
+                    if (tabName === 'review') {
+                        const reviewInput = document.getElementById('reviewInput');
+                        const text = reviewInput.value.trim();
+                        if (text.length > 0 && !nlpDebugger.isActive) {
+                            nlpDebugger.initializeDebugger(text);
+                        }
+                    }
+                });
+            });
+
+            // Initialize indicator position
+            const activeButton = document.querySelector('.tab-button.active');
+            updateIndicator(activeButton);
+
+            // Update on resize
+            window.addEventListener('resize', () => {
+                const activeBtn = document.querySelector('.tab-button.active');
+                updateIndicator(activeBtn);
+            });
+        }
+
+        // ============================================================
+        // PRODUCT INITIALIZATION
+        // ============================================================
+
+        /**
+         * Initialize product list with selectable cards
+         */
+        function initializeProducts() {
+            const productList = document.getElementById('productList');
+            const products = ['Laptop', 'Phone', 'Shoes', 'Headphones', 'Watch'];
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <i class="${productIcons[product]}"></i>
+                    <span>${product}</span>
+                `;
+
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+
+                    // Automatically initialize debugger and execute Step 1
+                    recDebugger.initializeDebugger(product);
+                });
+
+                productList.appendChild(card);
+            });
+        }
+
+        // ============================================================
+        // REVIEW TEXTAREA INITIALIZATION
+        // ============================================================
+
+        /**
+         * Initialize textarea with debounced auto-execution
+         */
+        function initializeReviewTextarea() {
+            const reviewInput = document.getElementById('reviewInput');
+            let debounceTimer = null;
+
+            reviewInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                
+                debounceTimer = setTimeout(() => {
+                    const text = reviewInput.value.trim();
+                    if (text.length > 0) {
+                        nlpDebugger.initializeDebugger(text);
+                    }
+                }, 800); // Wait 800ms after user stops typing
+            });
+
+            // Also trigger on Enter key
+            reviewInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    clearTimeout(debounceTimer);
+                    const text = reviewInput.value.trim();
+                    if (text.length > 0) {
+                        nlpDebugger.initializeDebugger(text);
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // PAGE INITIALIZATION
+        // ============================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeProducts();
+            initializeTabs();
+            initializeReviewTextarea();
+            recDebugger.renderInspector();
+            nlpDebugger.renderResults();
+        });
+    </script>
+</body>
+</html>
