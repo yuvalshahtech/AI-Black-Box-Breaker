@@ -1,4 +1,4 @@
-# AI Black Box Breaker  
+# Recommender NLP Visualizer
 ### Interactive Algorithm Debugger for E-Commerce
 
 AI systems in modern e-commerce platforms like Amazon and Shopify operate as complex "black boxes."  
